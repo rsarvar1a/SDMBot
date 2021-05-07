@@ -1,17 +1,16 @@
 
-from dotty_dict import dotty
-from functools import reduce
-from operator  import getitem
+import re
 import json
 import discord
-from discord import message
+from dotty_dict import dotty
 
 #
 
-from defs import *
+from defs              import *
 from src.utils.logging import Logger
-from src.utils.io import MessageHandler
-from src.game.game import Game
+from src.utils.io      import MessageHandler
+from src.game.game     import Game
+from src.game.factory  import GameFactory
 
 
 
@@ -26,12 +25,12 @@ class TournamentBot (object):
   {
     "new":
     {
-      "usage": "new/game/create <variant> [ <size1>,<size2>,... ] [name]",
-      "description": "Creates a new game of the given variant, sizes (or range), and name.",
+      "usage": "new/game/create <variant> [ <size1>,<size2>,... ] [ name ]",
+      "description": "Creates a new game of the given variant, sizes (default 7), and name.",
     },
     "global":
     {
-      "usage": "config/global <key> <set|add|remove> <value>",
+      "usage": "config/global <key> <get|set|add|remove> <value>",
       "description": "Sets a global bot configuration key to the specified value and persists.",
       "requires":
       [
@@ -49,6 +48,13 @@ class TournamentBot (object):
   }
 
 
+  forbiddenKeys = \
+  [
+    "token",
+    "admins"
+  ]
+
+
   def __init__ (self):
   #
     self.globalConfigs = dotty(json.load(open(CONFIG_FILE)))
@@ -57,6 +63,7 @@ class TournamentBot (object):
     self.logger        = Logger(self.globalConfigs)
     self.messager      = MessageHandler(self.globalConfigs)
 
+    self.factory       = GameFactory(self)
     self.activeGames   = {}
     self.activePlayers = {}
   #
@@ -77,7 +84,28 @@ class TournamentBot (object):
   #
 
 
+  async def Specialize (self, val : str):
+  #
+    if   val == "None":   return None
+    elif val == "True":   return True
+    elif val == "False":  return False
+    elif val == "{}":     return {}
+    elif val == "[]":     return []
+    else:                 return val
+  #
+
+
   async def NewGame (self, context : discord.Message, args : list):
+  #
+    if len(args) > 3:    await self.Usage(context.channel, TournamentBot.globals["new"])
+    elif args is None:   await self.factory.List(context)
+    elif len(args) == 1: await self.factory.Create(context, args[0])
+    elif len(args) == 2: await self.factory.Create(context, args[0], args[1])
+    elif len(args) == 3: await self.factory.Create(context, args[0], args[1], args[2])
+  #
+
+
+  async def Help (self, context : discord.Message):
   #
     pass
   #
@@ -103,7 +131,7 @@ class TournamentBot (object):
 
     # Forbidden keys.
     if args is None or len(args) == 0 or type(args[1]) is int: await self.Usage(context.channel, TournamentBot.globals["global"])
-    elif args[0] in ["token"]:
+    elif args[0] in TournamentBot.forbiddenKeys:
     #
       await self.messager.SendEmbed(
         context.channel,
@@ -157,11 +185,13 @@ class TournamentBot (object):
     #
       k = args[0]
       a = args[1].lower()
-      v = ((args[2] if args[2] != 'None' else None) if args[2] != '{}' else {}) if args[2] != '[]' else [] # Special values: None, empty lists and dicts.
+      v = args[2]
+
+      v = self.botHandle.Specialize(v)
 
       if a == "set":
       #
-        self.globalConfigs[k] = v
+        self.globalConfigs.update({ k : v })
 
         await self.messager.SendEmbed(
           context.channel,

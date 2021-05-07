@@ -1,12 +1,13 @@
 
-from dotty_dict import dotty
-from threading import RLock
+from os import name
 import discord
+from dotty_dict import dotty
+from threading  import RLock
 
 #
 
+from defs                  import *
 from src.utils.asyncobject import AsyncObject
-from defs import *
 
 #
 
@@ -64,6 +65,17 @@ class Game (AsyncObject):
       ]
     },  
 
+    "rename":
+    {
+      "usage": "rename <name>",
+      "description": "Changes the name of the game.",
+      "requires":
+      [
+        {"name": SEP, "value": "*You are a bot moderator.*" },
+        {"name": SEP, "value": "*You are the owner of this game.*" }
+      ]
+    },
+
     "delete":
     {
       "usage": "delete/del",
@@ -83,6 +95,12 @@ class Game (AsyncObject):
   }
 
 
+  forbiddenKeys = \
+  [
+    "uuid"
+  ]
+
+
   read_only = discord.PermissionOverwrite(
     read_messages = True, 
     send_messages = False,
@@ -97,7 +115,17 @@ class Game (AsyncObject):
   ) 
 
 
-  async def __init__ (self, bot, context : discord.Message, gameName : str, sizes : list):
+  base_properties = \
+  {
+    "private": False,
+    "sizes":
+    {
+      "absolute-max": 10
+    }
+  }
+
+
+  async def __init__ (self, bot, context : discord.Message, gameName : str, sizes : list, properties : dict):
   #
     self.botHandle = bot
     self.playerIDs = [context.author.id]
@@ -105,7 +133,7 @@ class Game (AsyncObject):
 
     self.mutex     = RLock()
 
-    self.name      = "Game '" + gameName + "'" if gameName is not None else "New Game"
+    self.name      = gameName
     self.category  = await context.channel.guild.create_category(name = self.name)
 
     self.channels  = \
@@ -126,23 +154,16 @@ class Game (AsyncObject):
         }
       )
     }
+    self.messages = {}
 
     self.botHandle.activeGames.update({ self.category.id: self })
     self.botHandle.activePlayers.update({ context.author.id: self })
 
     self.isRunning = False
 
-    self.properties = dotty(
-      {
-        "private": False,
-        "uuid": self.category.id,
-        "sizes":
-        {
-          "sizes": sizes,
-          "absolute-max": 10
-        }
-      }
-    )
+    self.properties = dotty(Game.base_properties.copy().update(properties)) \
+      .update({ "sizes.sizes": sizes }) \
+      .update({ "uuid": self.category.id })
 
     self.Prepare()
   #
@@ -464,11 +485,70 @@ class Game (AsyncObject):
       return
     #
 
-    # TODO
+    soughtPlayer = None
+    try:
+    #
+      soughtPlayer = await context.guild.fetch_member(member)
+    #
+    except (discord.Forbidden, discord.HTTPException) as e:
+    #
+      soughtPlayer = None
+    #
+
+    if soughtPlayer is None:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{ERROR} <@{pid}> is not a valid server member!" \
+            .format(ERROR = EMOTES["ERR"], pid = member),
+          "title": self.name,
+          "colour": COLOURS["ERR"]
+        },
+        delete_after = None
+      )
+    #
+    elif soughtPlayer.id not in self.playerIDs:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{INFO} {target} is not in this game!" \
+            .format(INFO = EMOTES["INFO"], target = soughtPlayer.mention),
+          "title": self.name,
+          "colour": COLOURS["INFO"]
+        },
+        delete_after = None
+      )
+    #
+    else:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{SUCCESS} {target} was removed from the game!" \
+            .format(SUCCESS = EMOTES["SUCCESS"], target = soughtPlayer.mention),
+          "title": self.name,
+          "colour": COLOURS["SUCCESS"]
+        },
+        delete_after = None
+      )
+
+      self.botHandle.activePlayers.pop(soughtPlayer.id)
+      self.playerIDs.remove(soughtPlayer.id)
+
+      if len(self.playerIDs) in self.properties["sizes.sizes"]:
+      #
+        self.Start()
+      #
+    #
   #
 
 
-  async def Edit (self, context, key, value):
+  async def Edit (self, context, key, action, value):
   #
     player = context.author
 
@@ -484,9 +564,201 @@ class Game (AsyncObject):
       return
     #
 
+    if action == 'get':
+    #
+      data = self.globalConfigs.get(key)
+      
+      if key in Game.forbiddenKeys:
+      #
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{WARNING} {mention}, you should not directly modify this key." \
+              .format(WARNING = EMOTES["WARNING"], mention = player.mention),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["WARNING"]
+          },
+          delete_after = None
+        )
+        return
+      #
+
+      if data is None:
+      #
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERR} Key `{key}` was not found!" \
+              .format(ERR = EMOTES["ERR"], key = key),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["ERR"]
+          },
+          delete_after = None
+        )
+      #
+      else:
+      #
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{SUCCESS} Key `{key}` has value `{val}`." \
+              .format(SUCCESS = EMOTES["SUCCESS"], key = key, val = data),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["SUCCESS"]
+          },
+          delete_after = None
+        )
+      #
+    #
+    elif action == 'set':
+    #
+      self.globalConfigs.update({ key: value })
+
+      await self.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{SUCCESS} Set key `{key}` to value `{val}`." \
+            .format(SUCCESS = EMOTES["SUCCESS"], key = key, val = value),
+          "title": "Configuration for {game}".format(game = self.name),
+          "colour": COLOURS["SUCCESS"]
+        },
+        delete_after = None
+      )
+    #
+    elif action == "add":
+    #
+      if self.globalConfigs.get(key) is None:
+      #
+        self.globalConfigs.update({ key: [] })
+      #
+
+      if type(self.globalConfigs[key]) is not list:
+      #
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERROR} Value at key `{key}` exists and is not a list!\nRun `{prefix} global {key} set []` first." \
+              .format(ERR = EMOTES["ERR"], key = key, prefix = self.globalConfigs["prefix"]),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["ERR"]
+          },
+          delete_after = None
+        )
+      #
+      else:
+      #
+        self.globalConfigs[key].append(value)
+        lis = self.globalConfigs[key]
+
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{SUCCESS} Appended value `{value}` to list at key `{key}`\n(The list is `{l}`)." \
+              .format(SUCCESS = EMOTES["SUCCESS"], key = key, value = value, l = lis),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["SUCCESS"]
+          },
+          delete_after = None
+        )
+      #
+    #
+    elif action == "remove":
+    #
+      if self.globalConfigs.get(key) is None or type(self.globalConfigs[key]) is not list:
+      #
+        await self.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERROR} There is no list at key `{key}`!" \
+              .format(ERR = EMOTES["ERR"], key = key),
+            "title": "Configuration for {game}".format(game = self.name),
+            "colour": COLOURS["ERR"]
+          },
+          delete_after = None
+        )
+      #
+      else:
+      #
+        lis = self.globalConfigs[key]
+
+        if value not in lis:
+        #
+          await self.messager.SendEmbed(
+            context.channel,
+            {
+              "author": "SDMBot",
+              "description": "{INFO} Value `{value}` was not in the list at key `{key}`!\n(The list is `{l}`)." \
+                .format(INFO = EMOTES["INFO"], key = key, val = value, l = lis),
+              "title": "Configuration for {game}".format(game = self.name),
+              "colour": COLOURS["INFO"]
+            },
+            delete_after = None
+          )
+        #
+        else:
+        #
+          self.globalConfigs[key].remove(value)
+
+          await self.messager.SendEmbed(
+            context.channel,
+            {
+              "author": "SDMBot",
+              "description": "{SUCCESS} Removed value `{value}` from the list at key `{key}` (new list is `{l}`)." \
+                .format(SUCCESS = EMOTES["SUCCESS"], key = key, val = value, l = self.globalConfigs[key]),
+              "title": "Configuration for {game}".format(game = self.name),
+              "colour": COLOURS["SUCCESS"]
+            },
+            delete_after = None
+          )  
+        #
+      #
+    #
+    else:
+    #
+      await self.Usage(context.channel, Game.commands["edit"])
+      return
+    #
+
+    self.Prepare()
+
     if len(self.playerIDs) in self.properties["sizes.sizes"]:
     #
       self.Start()
+    #
+  #
+
+
+  async def Rename (self, context, name):
+  #
+    player = context.author
+
+    if player.id != self.owner.id and player.id not in self.botHandle.globalConfigs["moderators"]:
+    #
+      await self.NoPermission(player, context.channel)
+      return
+    #
+    else:
+    #
+      self.name = "Game '" + ' '.join(list(map(lambda s: str(s) if type(s) is int else s, name))) + "'"
+      await self.category.edit(name = self.name)
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{SUCCESS} Changed the game's name to `{name}`." \
+            .format(SUCCESS = EMOTES["SUCCESS"], name = self.name),
+          "title": self.name,
+          "colour": COLOURS["SUCCESS"]
+        },
+        delete_after = None
+      )
     #
   #
 
@@ -524,7 +796,23 @@ class Game (AsyncObject):
 
   async def Status (self, context):
   #
-    pass
+    fields = []
+    for key in self.properties.keys():
+      fields.append({ "name": SEP, "value": "`{key}` : *{type}* {SEP} \n`{value}`" \
+        .format(SEP = SEP, key = key, type = type(self.properties[key]), value = self.properties[key]) })
+
+    data = \
+    {
+      "author": "SDMBot",
+      "description": "**Players** ({len}):" + \
+        ", ".join(list(map(lambda player: player.mention, list(map(lambda pid: await context.guild.fetch_member(pid), self.playerIDs))))) + \
+        "\n**Configuration:**",
+      "title": self.name,
+      "colour": COLOURS["INFO"],
+      "fields": fields
+    }
+
+    await self.botHandle.messager.SendEmbed(context.channel, data, delete_after = None)
   #
 
 
@@ -534,38 +822,44 @@ class Game (AsyncObject):
     #
     if    command in ["join", "j"]:
     #
-      if len(args) != 0: await self.botHandle.Usage(context.channel, Game.commands["join"])
+      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["join"])
       else: await self.Join(context)
     #
     elif  command in ["leave", "l"]:
     #
-      if len(args) != 0: await self.botHandle.Usage(context.channel, Game.commands["leave"])
+      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["leave"])
       else: await self.Leave(context)
     #
     elif  command in ["delete", "del"]:
     #
-      if len(args) != 0: await self.botHandle.Usage(context.channel, Game.commands["delete"])
+      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["delete"])
       else: await self.Delete(context)
     #
     elif  command in ["status", "lobby"]:
     #
-      if len(args) != 0: await self.botHandle.Usage(context.channel, Game.commands["status"])
+      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["status"])
       await self.Status(context)
     #
     elif  command in ["add", "invite"]:    
     #
-      if len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["invite"])
+      if args is None or len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["invite"])
       else: await self.Add(context, args[0])
     #
     elif  command in ["remove", "kick"]:
     #
-      if len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["remove"])
+      if args is None or len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["remove"])
       else: await self.Remove(context, args[0])
     #
     elif  command in ["edit"]:
     #
-      if len(args) != 2: await self.botHandle.Usage(context.channel, Game.commands["edit"])
-      else: await self.Edit(context, args[0], args[1])
+      if args is None or len(args) not in [2, 3] or type(args[1]) is not str: await self.botHandle.Usage(context.channel, Game.commands["edit"])
+      else: await self.Edit(context, args[0], args[1].toLower(), self.Specialize(args[2]) if len(args) > 2 else None)
+    #
+    elif  command in ["rename"]:
+    #
+      if args is None: await self.botHandle.Usage(context.channel, Game.commands["rename"])
+      else: await self.Rename(context, args)
+
     #
     context.delete()
     #
@@ -579,6 +873,12 @@ class Game (AsyncObject):
   #
 
 
+  async def Prepare (self):
+  #
+    pass
+  #
+
+
   async def Start (self):
   #
     pass
@@ -587,6 +887,7 @@ class Game (AsyncObject):
 
   async def Cleanup (self):
   #
+    name    = self.name
     id      = self.category.id
     players = self.playerIDs
     
@@ -598,4 +899,8 @@ class Game (AsyncObject):
       await ch.delete()
     
     await self.category.delete()
+
+    self.botHandle.logger.info("Successfully destroyed game '{name}' (id {uuid})." \
+        .format(name = name, uuid = id),
+      __file__)
   #

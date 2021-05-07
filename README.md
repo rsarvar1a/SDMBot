@@ -16,9 +16,11 @@ To set up your configuration file, provide a `config.json` in the root directory
   "token": "<DISCORD TOKEN>",
   "prefix": "s!",
   "admins": [
-    "<USER ID>",
-    "<USER ID>",
-    ...
+    00000000000,
+    00000000000,
+  ],
+  "moderators": [
+    00000000000
   ]
 }
 ```

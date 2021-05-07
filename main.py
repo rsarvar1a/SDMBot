@@ -7,8 +7,7 @@ import discord
 
 #
 
-from defs import *
-from src.game.game import Game
+from defs           import *
 from src.client.bot import TournamentBot
 
 
