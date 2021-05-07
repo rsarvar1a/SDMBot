@@ -10,17 +10,24 @@ CONFIG_FILE = os.path.join(ROOT_PATH, "config.json")
 
 EMOTES = \
 {
-  "ERR": ":no_entry:"
+  "ERR": ":no_entry:",
+  "WARNING": ":warning:",
+  "SUCCESS": ":white_check_mark:",
+  "INFO": "information_source:"
 }
 
 COLOURS = \
 {
-  "ERR": 14438496
+  "ERR": 14438496,
+  "WARNING": 16769101,
+  "SUCCESS": 10805325,
+  "INFO": 11258335
 }
 
 STD_TIME = 3
+TRIGGER_TIME = 0
 
-class ERRS (object):
+class MSGS (object):
 
   ErrorNoDMS = \
   {
@@ -39,3 +46,15 @@ class ERRS (object):
       .format(ERR_EMOTE = EMOTES["ERR"]),
     "colour": COLOURS["ERR"]
   }
+  #
+  ErrorGameStarted = \
+  {
+    "author": "SDMBot",
+    "title": None,
+    "description": "{ERR_EMOTE} This game has already started!" \
+      .format(ERR_EMOTE = EMOTES["ERR"]),
+    "colour": COLOURS["ERR"]
+  }
+
+SEP = "—"
+ICON_URL = "https://cdn.discordapp.com/avatars/784132730220314644/0dc8b7e6ba0f729b55b2e0af4b0dc322.png?size=256"

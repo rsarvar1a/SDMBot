@@ -1,4 +1,5 @@
 
+import re
 import json
 import os
 import sys
@@ -42,23 +43,31 @@ async def on_message (message : discord.Message):
 
   hasPrefix = str(message.content).startswith(bot.globalConfigs["prefix"])
   content   = str(message.content).removeprefix(bot.globalConfigs["prefix"]).lstrip().rstrip()
-  as_array  = list(map(lambda x: x.lower(), content.split()))
-  command   = as_array[0]  or None
-  args      = as_array[1:] or None
+
+  as_array  = content.split()
+  as_array  = list(map(lambda s: re.sub(r'<@!?([0-9]+)>', r'\g<1>', s), as_array))
+  as_array  = list(map(lambda s: int(s) if s.isnumeric() else s, as_array))
+
+  command   = as_array[0]  if len(as_array) > 0 else None
+  command   = command.lower() if type(command) is str else command
+  
+  args      = as_array[1:] if len(as_array) > 0 else None
 
   if hasPrefix: # Handle special globals; otherwise pass them off to the active game.
   #
     if (message.guild == None):
     #
-      await bot.messager.SendEmbed(message.author.dm_channel, ERRS.ErrorNoDMS, delete_after = STD_TIME)
+      await bot.messager.SendEmbed(message.author.dm_channel, MSGS.ErrorNoDMS, delete_after = STD_TIME)
       return
     #
 
-    if command in TournamentBot.globals:
+    bot.logger.debug("Processing command {prefix} `{command}` {args}.".format(prefix = bot.globalConfigs["prefix"], command = command, args = args), __file__)
+
+    if await bot.HandleCommand(message, command, args):
     #
-      await bot.HandleCommand(message, command, args)
+      await message.delete(delay = TRIGGER_TIME)
     #
-    elif command in Game.commands:
+    else:
     #
       if message.channel.category is not None and message.channel.category.id in bot.activeGames.keys():
       #
@@ -66,13 +75,15 @@ async def on_message (message : discord.Message):
       #
       else:
       #
-        await bot.messager.SendEmbed(message.channel, ERRS.ErrorNoGame, delete_after = STD_TIME)
-        await message.delete()
+        await bot.messager.SendEmbed(message.channel, MSGS.ErrorNoGame, delete_after = STD_TIME)
+        await message.delete(delay = TRIGGER_TIME)
       #
     #
   #
   else: # Handle prefixless bot interactions in active categories.
   #
+    bot.logger.debug("Processing message {words}.".format(words = as_array), __file__)
+
     if message.channel.category is not None and message.channel.category.id in bot.activeGames.keys():
     #
       await bot.activeGames[message.channel.category.id].HandleEvent(message, "message")
