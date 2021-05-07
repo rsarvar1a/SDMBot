@@ -1,4 +1,4 @@
-
+ 
 import discord
 from datetime import datetime
 
@@ -11,14 +11,16 @@ from defs import *
 class MessageHandler (object):
 
 
-  def __init__ (self, config):
+  def __init__ (self, config, bot):
   #
-    pass
+    self.botHandle = bot
   #
 
 
   async def SendMessage (self, channel : discord.ChannelType, data : str, delete_after : int = None):
   #
+    self.botHandle.logger.Reflect("bot.response: '" + data + "'", "debug")
+    
     return await channel.send(content = data, delete_after = delete_after)
   #
 
@@ -51,6 +53,8 @@ class MessageHandler (object):
     if data.get("fields") is not None:
       for field in data.get("fields"):
         constructed.add_field(name = field["name"], value = field["value"])
+
+    self.botHandle.logger.Reflect("bot.response: '" + data.get("description") + "'\n" + ('\n'.join(list(map(lambda d: d["name"] + ": " + d["value"], data.get("fields")))) if data.get("fields") else ""), data.get("colour"))
 
     return await channel.send(embed = constructed, file = f, delete_after = delete_after)
   #

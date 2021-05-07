@@ -801,11 +801,16 @@ class Game (AsyncObject):
       fields.append({ "name": SEP, "value": "`{key}` : *{type}* {SEP} \n`{value}`" \
         .format(SEP = SEP, key = key, type = type(self.properties[key]), value = self.properties[key]) })
 
+    players = []
+    for p in self.playerIDs:
+      player = await context.guild.fetch_member(p)
+      players.append(player)
+
     data = \
     {
       "author": "SDMBot",
-      "description": "**Players** ({len}):" + \
-        ", ".join(list(map(lambda player: player.mention, list(map(lambda pid: await context.guild.fetch_member(pid), self.playerIDs))))) + \
+      "description": "**Players** ({len}):".format(len = len(players)) + \
+        ", ".join(list(map(lambda p: p.mention, players))) + \
         "\n**Configuration:**",
       "title": self.name,
       "colour": COLOURS["INFO"],

@@ -4,11 +4,20 @@ from datetime import datetime
 
 #
 
-from defs import ROOT_PATH
+from defs import *
 
 #
 
 class Logger (object):
+
+
+  prios = \
+  {
+    COLOURS["ERR"]: "error",
+    COLOURS["WARNING"]: "warning",
+    COLOURS["INFO"]: "info",
+    COLOURS["SUCCESS"]: "info",
+  }
 
 
   def __init__ (self, config : dict):
@@ -79,4 +88,10 @@ class Logger (object):
         reset = self.Reset()
       )
       print(ret)
+  #
+
+
+  def Reflect (self, content : str, colour : int):
+  #
+    self.Log(content, "reflection", Logger.prios[colour])
   #

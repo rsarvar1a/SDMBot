@@ -1,4 +1,5 @@
 
+import os
 import re
 import json
 import discord
@@ -57,11 +58,12 @@ class TournamentBot (object):
 
   def __init__ (self):
   #
-    self.globalConfigs = dotty(json.load(open(CONFIG_FILE)))
+    f = open(CONFIG_MAIN) if os.stat(CONFIG_FILE).st_size == 0 else open(CONFIG_FILE)
+    self.globalConfigs = dotty(dictionary = json.load(f))
 
     self.discordClient = discord.Client()
     self.logger        = Logger(self.globalConfigs)
-    self.messager      = MessageHandler(self.globalConfigs)
+    self.messager      = MessageHandler(self.globalConfigs, self)
 
     self.factory       = GameFactory(self)
     self.activeGames   = {}
@@ -84,7 +86,7 @@ class TournamentBot (object):
   #
 
 
-  async def Specialize (self, val : str):
+  def Specialize (self, val : str):
   #
     if   val == "None":   return None
     elif val == "True":   return True
@@ -97,11 +99,11 @@ class TournamentBot (object):
 
   async def NewGame (self, context : discord.Message, args : list):
   #
-    if len(args) > 3:    await self.Usage(context.channel, TournamentBot.globals["new"])
-    elif args is None:   await self.factory.List(context)
-    elif len(args) == 1: await self.factory.Create(context, args[0])
-    elif len(args) == 2: await self.factory.Create(context, args[0], args[1])
-    elif len(args) == 3: await self.factory.Create(context, args[0], args[1], args[2])
+    if len(args) > 3:                      await self.Usage(context.channel, TournamentBot.globals["new"])
+    elif args is None or len(args) == 0:   await self.factory.List(context)
+    elif len(args) == 1:                   await self.factory.Create(context, args[0])
+    elif len(args) == 2:                   await self.factory.Create(context, args[0], args[1])
+    elif len(args) == 3:                   await self.factory.Create(context, args[0], args[1], args[2])
   #
 
 
@@ -121,7 +123,7 @@ class TournamentBot (object):
           "author": "SDMBot",
           "description": "{ERROR} {mention}, you need to be a bot admin to do this." \
             .format(ERROR = EMOTES["ERR"], mention = context.author.mention),
-          "title": "Configuration",
+          "title": "Global Configuration",
           "colour": COLOURS["ERR"]
         },
         delete_after = None
@@ -139,7 +141,7 @@ class TournamentBot (object):
           "author": "SDMBot",
           "description": "{ERROR} {mention}, that key is not accessible on Discord for security reasons." \
             .format(ERROR = EMOTES["ERR"], mention = context.author.mention),
-          "title": "Configuration",
+          "title": "Global Configuration",
           "colour": COLOURS["ERR"]
         },
         delete_after = None
@@ -158,7 +160,7 @@ class TournamentBot (object):
             "author": "SDMBot",
             "description": "{ERR} Key `{key}` was not found!" \
               .format(ERR = EMOTES["ERR"], key = args[0]),
-            "title": "Configuration",
+            "title": "Global Configuration",
             "colour": COLOURS["ERR"]
           },
           delete_after = None
@@ -172,7 +174,7 @@ class TournamentBot (object):
             "author": "SDMBot",
             "description": "{SUCCESS} Key `{key}` has value `{val}`." \
               .format(SUCCESS = EMOTES["SUCCESS"], key = args[0], val = data),
-            "title": "Configuration",
+            "title": "Global Configuration",
             "colour": COLOURS["SUCCESS"]
           },
           delete_after = None
@@ -187,11 +189,11 @@ class TournamentBot (object):
       a = args[1].lower()
       v = args[2]
 
-      v = self.botHandle.Specialize(v)
+      v = self.Specialize(v)
 
       if a == "set":
       #
-        self.globalConfigs.update({ k : v })
+        self.globalConfigs[k] = v
 
         await self.messager.SendEmbed(
           context.channel,
@@ -199,7 +201,7 @@ class TournamentBot (object):
             "author": "SDMBot",
             "description": "{SUCCESS} Set key `{key}` to value `{val}`." \
               .format(SUCCESS = EMOTES["SUCCESS"], key = k, val = v),
-            "title": "Configuration",
+            "title": "Global Configuration",
             "colour": COLOURS["SUCCESS"]
           },
           delete_after = None
@@ -220,7 +222,7 @@ class TournamentBot (object):
               "author": "SDMBot",
               "description": "{ERROR} Value at key `{key}` exists and is not a list!\nRun `{prefix} global {key} set []` first." \
                 .format(ERR = EMOTES["ERR"], key = k, prefix = self.globalConfigs["prefix"]),
-              "title": "Configuration",
+              "title": "Global Configuration",
               "colour": COLOURS["ERR"]
             },
             delete_after = None
@@ -237,7 +239,7 @@ class TournamentBot (object):
               "author": "SDMBot",
               "description": "{SUCCESS} Appended value `{value}` to list at key `{key}`\n(The list is `{l}`)." \
                 .format(SUCCESS = EMOTES["SUCCESS"], key = k, value = v, l = lis),
-              "title": "Configuration",
+              "title": "Global Configuration",
               "colour": COLOURS["SUCCESS"]
             },
             delete_after = None
@@ -254,7 +256,7 @@ class TournamentBot (object):
               "author": "SDMBot",
               "description": "{ERROR} There is no list at key `{key}`!" \
                 .format(ERR = EMOTES["ERR"], key = k),
-              "title": "Configuration",
+              "title": "Global Configuration",
               "colour": COLOURS["ERR"]
             },
             delete_after = None
@@ -272,7 +274,7 @@ class TournamentBot (object):
                 "author": "SDMBot",
                 "description": "{INFO} Value `{value}` was not in the list at key `{key}`!\n(The list is `{l}`)." \
                   .format(INFO = EMOTES["INFO"], key = k, val = v, l = lis),
-                "title": "Configuration",
+                "title": "Global Configuration",
                 "colour": COLOURS["INFO"]
               },
               delete_after = None
@@ -288,7 +290,7 @@ class TournamentBot (object):
                 "author": "SDMBot",
                 "description": "{SUCCESS} Removed value `{value}` from the list at key `{key}` (new list is `{l}`)." \
                   .format(SUCCESS = EMOTES["SUCCESS"], key = k, val = v, l = self.globalConfigs[k]),
-                "title": "Configuration",
+                "title": "Global Configuration",
                 "colour": COLOURS["SUCCESS"]
               },
               delete_after = None
@@ -300,6 +302,13 @@ class TournamentBot (object):
       config = open(CONFIG_FILE, "w")
       config.write(self.globalConfigs.to_json())
       self.logger.info("Wrote to config.json.", __file__)
+
+      if self.globalConfigs is None:
+      #
+        self.globalConfigs = dotty(json.load(open(CONFIG_MAIN)))
+        self.logger.warning("Reloaded from master! Writing to main.", __file__)
+        config.write(self.globalConfigs.to_json())
+      #
     #
   #
 

@@ -27,7 +27,7 @@ class GameFactory (object):
         context.channel,
         {
           "author": "SDMBot",
-          "description": "{ERR} Unknown variant '{variant}'!" \
+          "description": "{ERR} Unknown variant `{variant}`!" \
             .format(ERR = EMOTES["ERR"], variant = variant),
           "title": "Game Creator",
           "colour": COLOURS["ERR"],
