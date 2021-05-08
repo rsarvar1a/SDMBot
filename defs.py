@@ -3,11 +3,11 @@ import sys, os
 
 #
 
-ROOT_PATH   = os.path.dirname(os.path.abspath(__file__))
-ASSET_PATH  = os.path.join(ROOT_PATH, "assets/")
-SRC_PATH    = os.path.join(ROOT_PATH, "src/")
-CONFIG_FILE = os.path.join(ROOT_PATH, "config.json")
-CONFIG_MAIN = os.path.join(ROOT_PATH, "config.json.master")
+ROOT_PATH    = os.path.dirname(os.path.abspath(__file__))
+MODULES_PATH = os.path.join(ROOT_PATH, "modules/")
+SRC_PATH     = os.path.join(ROOT_PATH, "src/")
+CONFIG_FILE  = os.path.join(ROOT_PATH, "config.json")
+CONFIG_MAIN  = os.path.join(ROOT_PATH, "config.json.master")
 
 EMOTES = \
 {

@@ -9,7 +9,7 @@ class Component (AsyncObject):
 
   async def __init__ (self, parent : Game):
   #
-    self.parent = parent
+    self.game = parent
   #
 
 

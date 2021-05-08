@@ -19,7 +19,7 @@ class GameFactory (object):
   #
 
 
-  async def Create (self, context : discord.Message, variant : str, sizes : str = "7", name = None):
+  async def Create (self, context : discord.Message, variant : str, sizes : str = None, name = None):
   #
     if variant not in self.variants.keys():
     #
@@ -37,7 +37,11 @@ class GameFactory (object):
       return
     #
 
-    if re.match(r'([0-9]+)(,[0-9]+)*', sizes) is None:
+    if sizes == None:
+    #
+      sizes = self.variants[variant]["sizes.default"]
+    #
+    elif re.match(r'([0-9]+)(,[0-9]+)*', sizes) is None:
     #
       await self.botHandle.messager.SendEmbed(
         context.channel,

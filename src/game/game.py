@@ -150,6 +150,13 @@ class Game (AsyncObject):
     self.name      = gameName
     self.category  = await context.channel.guild.create_category(name = self.name)
 
+    self.paths     = \
+    {
+      "root": os.path.join(MODULES_PATH, properties["archetype"]),
+      "components": os.path.join(os.path.join(MODULES_PATH, properties["archetype"]), "components"),
+      "assets": os.path.join(os.path.join(MODULES_PATH, properties["archetype"]), "assets")
+    }
+
     self.channels  = \
     {
       'lobby': await context.channel.category.create_text_channel(
