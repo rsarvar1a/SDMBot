@@ -37,10 +37,11 @@ class MessageHandler (object):
     f = None
     if data.get("file") is not None:
     #
-      f = discord.File(filename = data.get("file"))
+
+      f = discord.File(fp = data.get("file")["source"], filename = data.get("file")["name"])
       constructed.set_image(
         url = "attachment://{ref}" \
-          .format(ref = data.get("file"))
+          .format(ref = data.get("file")["name"])
       )
     #
 

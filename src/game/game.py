@@ -125,6 +125,20 @@ class Game (AsyncObject):
   }
 
 
+  components_dict = \
+  {
+    "premise":     None,
+    "tracker":     None,
+    "nomination":  None,
+    "voting":      None,
+    "passed-gov":  None,
+    "failed-gov":  None,
+    "legislative": None,
+    "post-policy": None,
+    "power":       None
+  }
+
+
   async def __init__ (self, bot, context : discord.Message, gameName : str, sizes : list, properties : dict):
   #
     self.botHandle = bot
@@ -164,6 +178,8 @@ class Game (AsyncObject):
     self.properties = dotty(Game.base_properties.copy().update(properties)) \
       .update({ "sizes.sizes": sizes }) \
       .update({ "uuid": self.category.id })
+
+    self.activeComponents = Game.components_dict.copy()
 
     self.Prepare()
   #
@@ -872,7 +888,7 @@ class Game (AsyncObject):
   #
 
 
-  async def HandleEvent (self, data, type):
+  async def HandleEvent (self, data : any, form : str):
   #
     pass
   #
@@ -886,7 +902,7 @@ class Game (AsyncObject):
 
   async def Start (self):
   #
-    pass
+    await self.activeComponents["premise"].Setup()
   #
 
 
