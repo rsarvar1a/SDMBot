@@ -1,5 +1,6 @@
 {
   "name":           "Secret Hitler",
+  "description":    "The base version of Secret Hitler.",
   "archetype":      "secrethitler",
   
   "entry-point":    "premise",

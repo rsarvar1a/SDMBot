@@ -1,7 +1,5 @@
 
 import importlib
-from os import O_SHORT_LIVED
-from dotty_dict import dotty
 from os.path import join
 
 #
@@ -49,7 +47,7 @@ class ComponentFactory (object):
     compsModName = str(os.path.relpath(game.paths["components"], start = ROOT_PATH)) \
       .translate({ '/' : '.' })
     modName      = "{comps}.{s}.{c}".format(comps = compsModName, s = slot, c = component)
-    self.botHandle.logger.debug("Loading module {m}.".format(m = modName), __file__)
+    self.botHandle.logger.debug("Loading module '{m}'.".format(m = modName), __file__)
 
     module    = importlib.import_module(modName)
     archetype = variant["archetype"]

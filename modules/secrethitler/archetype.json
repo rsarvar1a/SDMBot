@@ -1,0 +1,11 @@
+{
+  "premise":     "default",
+  "board":       "default",
+  "tracker":     "default",
+  "nomination":  "default",
+  "voting":      "default",
+  "passedgov":   "default",
+  "failedgov":   "default",
+  "legislative": "default",
+  "power":       "empty"
+}

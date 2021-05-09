@@ -1,4 +1,5 @@
 
+import json
 import re
 import discord
 
@@ -14,8 +15,25 @@ class GameFactory (object):
 
   def __init__ (self, bot):
   #
-    self.botHandle = bot
-    self.variants  = {}
+    self.botHandle  = bot
+
+    self.archetypes = {}
+    self.variants   = {}
+
+    for module in os.listdir(MODULES_PATH):
+    #
+      modPath = os.path.join(MODULES_PATH, module)
+
+      archetype = json.load(open(os.path.join(modPath, "archetype.json")))
+      self.archetypes[module] = archetype
+
+      variantsPath = os.path.join(modPath, "variants")
+      for config in os.listdir(variantsPath):
+      #
+        variant = json.load(open(os.path.join(variantsPath, config)))
+        self.variants[variant["name"]] = variant  
+      #
+    #
   #
 
 
