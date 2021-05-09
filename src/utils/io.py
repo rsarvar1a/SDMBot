@@ -1,6 +1,7 @@
  
 import discord
 from datetime import datetime
+import json
 
 #
 
@@ -55,7 +56,7 @@ class MessageHandler (object):
       for field in data.get("fields"):
         constructed.add_field(name = field["name"], value = field["value"])
 
-    self.botHandle.logger.Reflect("bot.response: '" + data.get("description") + "'\n" + ('\n'.join(list(map(lambda d: d["name"] + ": " + d["value"], data.get("fields")))) if data.get("fields") else ""), data.get("colour"))
+    self.botHandle.logger.Reflect("bot.response:\n" + json.dumps(data, indent = 2), data.get("colour"))
 
     return await channel.send(embed = constructed, file = f, delete_after = delete_after)
   #

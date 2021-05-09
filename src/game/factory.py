@@ -2,6 +2,7 @@
 import json
 import re
 import discord
+from dotty_dict import dotty
 
 #
 
@@ -24,13 +25,13 @@ class GameFactory (object):
     #
       modPath = os.path.join(MODULES_PATH, module)
 
-      archetype = json.load(open(os.path.join(modPath, "archetype.json")))
+      archetype = dotty(json.load(open(os.path.join(modPath, "archetype.json"))))
       self.archetypes[module] = archetype
 
       variantsPath = os.path.join(modPath, "variants")
       for config in os.listdir(variantsPath):
       #
-        variant = json.load(open(os.path.join(variantsPath, config)))
+        variant = dotty(json.load(open(os.path.join(variantsPath, config))))
         self.variants[variant["name"]] = variant  
       #
     #
@@ -75,7 +76,8 @@ class GameFactory (object):
       return
     #
 
-    sizes_list = list(map(lambda s: int(s), sizes.split(',')))
+    if type(sizes) is not list: sizes_list = list(map(lambda s: int(s), sizes.split(',')))
+    else: sizes_list = sizes
 
     for size in sizes_list:
     #
@@ -96,6 +98,12 @@ class GameFactory (object):
       #
     #
 
+    if name is None:
+    #
+      name = 'New Game'
+    #
+
+    self.botHandle.logger.debug("Using:\n{config}".format(config = self.variants[variant]), __file__)
     ref = await Game(self.botHandle, context, name, sizes_list, self.variants[variant])
 
     await self.botHandle.messager.SendEmbed(
@@ -134,4 +142,10 @@ class GameFactory (object):
       },
       delete_after = None
     )
+  #
+
+
+  async def ViaRemake (self, context : discord.Message, prev : Game):
+  #
+    pass
   #

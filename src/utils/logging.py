@@ -78,10 +78,10 @@ class Logger (object):
   def Log (self, content : str, location : str, priority : str):
   #
     if (self.Numerical(priority) >= self.prio):
-      ret = "\n{date} in {file}:\n{tagcolour} {tag}{contentcolour} {content} {reset}".format(
+      ret = "\n{tagcolour} {tag}{contentcolour} {date} in {file}: \n{reset}{content}".format(
         date = datetime.now().strftime('%I:%M:%S %p').ljust(11),
         tagcolour = self.Colour(priority), 
-        tag = priority.upper().ljust(7),
+        tag = priority.upper().ljust(8),
         file = os.path.relpath(location, ROOT_PATH),
         contentcolour = self.Colour("content"), 
         content = content, 

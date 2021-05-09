@@ -103,6 +103,23 @@ class Game (AsyncObject):
       "usage": "status/lobby",
       "description": "Views info about this game."
     }, 
+
+    "remake":
+    {
+      "usage": "remake",
+      "description": "Toggles your membership in the remaking queue."
+    },
+
+    "go":
+    {
+      "usage": "go",
+      "description": "Initiates a remake of this game.",
+      "requires":
+      [
+        { "name": SEP, "value": "*You are a bot moderator.*" },
+        { "name": SEP, "value": "*You are the owner of the game.*" }
+      ]
+    }
   }
 
 
@@ -139,6 +156,7 @@ class Game (AsyncObject):
     self.owner     = context.author
 
     self.mutex     = RLock()
+    self.didGo = False
 
     self.name      = gameName
     self.category  = await context.channel.guild.create_category(name = self.name)
@@ -175,14 +193,18 @@ class Game (AsyncObject):
 
     self.isRunning = False
 
-    self.properties = dotty(Game.base_properties.copy().update(properties)) \
-      .update({ "sizes.sizes": sizes }) \
-      .update({ "uuid": self.category.id })
+    self.properties = dotty(Game.base_properties)
+    self.properties.update(properties)
+    self.properties.update(
+      { 
+        "sizes.sizes": sizes,
+        "uuid": self.category.id
+      })
 
     self.activeComponents = {}
 
     default_components = self.properties["defaults"]
-    for (key, comp) in default_components:
+    for (key, comp) in default_components.items():
     #
       self.activeComponents[key] = await self.botHandle.componentfactory.Create(key, comp, self)
     #
@@ -873,6 +895,18 @@ class Game (AsyncObject):
   #
 
 
+  async def Remake (self, context):
+  #
+    pass
+  #
+
+
+  async def Go (self, context):
+  #
+    pass
+  #
+
+
   async def Delete (self, context):
   #
     player = context.author
@@ -934,25 +968,25 @@ class Game (AsyncObject):
   async def HandleCommand (self, context, command, args):
   #
     self.mutex.acquire(blocking=True)
-    #
+
     if    command in ["join", "j"]:
     #
-      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["join"])
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["join"])
       else: await self.Join(context)
     #
     elif  command in ["leave", "l"]:
     #
-      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["leave"])
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["leave"])
       else: await self.Leave(context)
     #
     elif  command in ["delete", "del"]:
     #
-      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["delete"])
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["delete"])
       else: await self.Delete(context)
     #
     elif  command in ["status", "lobby"]:
     #
-      if args is not None: await self.botHandle.Usage(context.channel, Game.commands["status"])
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["status"])
       await self.Status(context)
     #
     elif  command in ["add", "invite"]:    
@@ -979,11 +1013,33 @@ class Game (AsyncObject):
     #
       if args is None: await self.botHandle.Usage(context.channel, Game.commands["rename"])
       else: await self.Rename(context, args)
+    #
+    elif  command in ["remake"]:
+    #
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["remake"])
+      else: await self.Remake(context)
+    #
+    elif  command in ["go"]:
+    #
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["go"])
+      else: await self.Go(context)
+    #
 
+    try:
     #
-    context.delete()
+      await context.delete()
     #
+    except discord.NotFound:
+    #
+      pass
+    #
+
     self.mutex.release()
+
+    if self.didGo:
+    #
+      await self.Cleanup()
+    #
   #
 
 
@@ -1035,7 +1091,7 @@ class Game (AsyncObject):
     for pid in players:
       self.botHandle.activePlayers.pop(pid)
 
-    for ch in self.channels:
+    for ch in self.channels.values():
       await ch.delete()
     
     await self.category.delete()

@@ -100,6 +100,23 @@ class TournamentBot (object):
 
   async def NewGame (self, context : discord.Message, args : list):
   #
+    player = context.author
+    if self.activePlayers.get(player.id) is not None:
+    #
+      await self.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{ERR} You are in a different game!" \
+            .format(ERR = EMOTES["ERR"]),
+          "title": "Game Creator",
+          "colour": COLOURS["ERR"]
+        },
+        delete_after = None
+      )
+      return
+    #
+
     if len(args) > 3:                      await self.Usage(context.channel, TournamentBot.globals["new"])
     elif args is None or len(args) == 0:   await self.gamefactory.List(context)
     elif len(args) == 1:                   await self.gamefactory.Create(context, args[0])

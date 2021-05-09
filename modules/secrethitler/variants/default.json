@@ -1,5 +1,5 @@
 {
-  "name":           "Secret Hitler",
+  "name":           "secret-hitler",
   "description":    "The base version of Secret Hitler.",
   "archetype":      "secrethitler",
   
@@ -9,8 +9,12 @@
   "defaults": 
   {
     "premise":     "default",
+    "conclusion":  "default",
+
     "board":       "default",
     "tracker":     "default",
+    "postpolicy":  "default",
+
     "nomination":  "default",
     "voting":      "default",
     "passedgov":   "default",
@@ -21,8 +25,23 @@
 
   "boards":
   {
-    "liberal": [{}, {}, {}, {}, { "power": "win-liberal" }],
-    "fascist": [{}, {}, { "passedGov": "hitler-zone" }, { "power": "bullet", "legislative": "veto-zone" }, { "power": "bullet" }, { "power": "win-fascist" }]
+    "liberal":
+    [
+      { "power": "empty" }, 
+      { "power": "empty" }, 
+      { "power": "empty" },
+      { "power": "empty" },
+      { "power": "win_liberal" }
+    ],
+    "fascist": 
+    [
+      { "power": "empty" }, 
+      { "power": "empty" }, 
+      { "passedGov": "hitler_zone" }, 
+      { "power": "bullet", "legislative": "veto_zone" }, 
+      { "power": "bullet" }, 
+      { "power": "win_fascist" }
+    ]
   },
 
   "boards-overrides":

@@ -24,7 +24,7 @@ class ComponentFactory (object):
     variant = game.properties
 
     componentPath = join(join(game.paths["components"], slot), component + ".py")
-    self.botHandle.logger.debug("Loading component from {rel}.".format(os.path.relpath(componentPath), start = ROOT_PATH), __file__)
+    self.botHandle.logger.debug("Loading component from {rel}.".format(rel = os.path.relpath(componentPath), start = ROOT_PATH), __file__)
   
     if os.path.isfile(componentPath) == False:
     #
@@ -35,7 +35,7 @@ class ComponentFactory (object):
         game.channels['lobby'],
         {
           "author": "SDMBot",
-          "description": "{WARNING} Component {s}.{c} does not exist!\nUsing {s}.{c2} instead; if you encounter issues please remake and inform an admin." \
+          "description": "{WARNING} Component `{s}.{c}` does not exist, using `{s}.{c2}`!\nIf you encounter issues please remake and inform an admin." \
             .format(WARNING = EMOTES["WARNING"], s = slot, c = old, c2 = component),
           "title": game.name,
           "colour": COLOURS["WARNING"]
@@ -44,8 +44,8 @@ class ComponentFactory (object):
       )
     #
 
-    compsModName = str(os.path.relpath(game.paths["components"], start = ROOT_PATH)) \
-      .translate({ '/' : '.' })
+    modTable     = ''.maketrans("/", ".")
+    compsModName = str(os.path.relpath(game.paths["components"], start = ROOT_PATH)).translate(modTable)
     modName      = "{comps}.{s}.{c}".format(comps = compsModName, s = slot, c = component)
     self.botHandle.logger.debug("Loading module '{m}'.".format(m = modName), __file__)
 
