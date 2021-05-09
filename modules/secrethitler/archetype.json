@@ -1,7 +1,12 @@
 {
   "premise":     "default",
+  "conclusion":  "default",
+  "updater":     "default",
+  
   "board":       "default",
   "tracker":     "default",
+  "postpolicy":  "default",
+
   "nomination":  "default",
   "voting":      "default",
   "passedgov":   "default",

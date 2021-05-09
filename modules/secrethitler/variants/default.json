@@ -10,6 +10,7 @@
   {
     "premise":     "default",
     "conclusion":  "default",
+    "updater":     "default",
 
     "board":       "default",
     "tracker":     "default",
