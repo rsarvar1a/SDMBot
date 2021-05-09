@@ -1,0 +1,43 @@
+{
+  "name":           "Secret Hitler",
+  "archetype":      "secrethitler",
+  
+  "entry-point":    "premise",
+  "board-manager":  "board",
+  
+  "defaults": 
+  {
+    "premise":     "default",
+    "board":       "default",
+    "tracker":     "default",
+    "nomination":  "default",
+    "voting":      "default",
+    "passedgov":   "default",
+    "failedgov":   "default",
+    "legislative": "default",
+    "power":       "empty"
+  },
+
+  "boards":
+  {
+    "liberal": [{}, {}, {}, {}, { "power": "win-liberal" }],
+    "fascist": [{}, {}, { "passedGov": "hitler-zone" }, { "power": "bullet", "legislative": "veto-zone" }, { "power": "bullet" }, { "power": "win-fascist" }]
+  },
+
+  "boards-overrides":
+  {
+    "5":  { "fascist": [ {},                    {},                    { "power": "peek" }, {}, {}, {} ] },
+    "6":  { "fascist": [ {},                    {},                    { "power": "peek" }, {}, {}, {} ] },
+    "7":  { "fascist": [ {},                    { "power": "invest" }, { "power": "se" },   {}, {}, {} ] },
+    "8":  { "fascist": [ {},                    { "power": "invest" }, { "power": "se" },   {}, {}, {} ] },
+    "9":  { "fascist": [ { "power": "invest" }, { "power": "invest" }, { "power": "se" },   {}, {}, {} ] },
+    "10": { "fascist": [ { "power": "invest" }, { "power": "invest" }, { "power": "se" },   {}, {}, {} ] }    
+  },
+
+  "sizes": 
+  {
+    "legal": [5, 6, 7, 8, 9, 10],
+    "default": [7],
+    "absolute-max": 10
+  }
+}

@@ -59,6 +59,25 @@ class GameFactory (object):
 
     sizes_list = list(map(lambda s: int(s), sizes.split(',')))
 
+    for size in sizes_list:
+    #
+      if size not in self.variants[variant]["sizes.legal"]:
+      #
+        await self.botHandle.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERR} This game can't be played with the size '{s}'." \
+              .format(ERR = EMOTES["ERR"], s = size),
+            "title": self.name,
+            "colour": COLOURS["ERR"]
+          },
+          delete_after = None
+        )
+        return
+      #
+    #
+
     ref = await Game(self.botHandle, context, name, sizes_list, self.variants[variant])
 
     await self.botHandle.messager.SendEmbed(

@@ -1,5 +1,5 @@
 
-from os import name
+import re
 import discord
 from dotty_dict import dotty
 from threading  import RLock
@@ -63,7 +63,18 @@ class Game (AsyncObject):
         { "name": SEP, "value": "*You are a bot moderator.*" },
         { "name": SEP, "value": "*You are the owner of the game.*" }
       ]
-    },  
+    },
+
+    "resize":
+    {
+      "usage": "resize/size <size1>,<size2>,...",
+      "description": "Changes the size of this game.",
+      "requires":
+      [
+        { "name": SEP, "value": "*You are a bot moderator.*" },
+        { "name": SEP, "value": "*You are the owner of the game.*" }
+      ]
+    },
 
     "rename":
     {
@@ -117,25 +128,7 @@ class Game (AsyncObject):
 
   base_properties = \
   {
-    "private": False,
-    "sizes":
-    {
-      "absolute-max": 10
-    }
-  }
-
-
-  components_dict = \
-  {
-    "premise":     None,
-    "tracker":     None,
-    "nomination":  None,
-    "voting":      None,
-    "passed-gov":  None,
-    "failed-gov":  None,
-    "legislative": None,
-    "post-policy": None,
-    "power":       None
+    "private": False
   }
 
 
@@ -159,7 +152,7 @@ class Game (AsyncObject):
 
     self.channels  = \
     {
-      'lobby': await context.channel.category.create_text_channel(
+      'lobby': await self.category.create_text_channel(
         name = "lobby",
         overwrites = \
         {
@@ -167,7 +160,7 @@ class Game (AsyncObject):
           context.author: Game.read_write
         }
       ),
-      'board': await context.channel.category.create_text_channel(
+      'board': await self.category.create_text_channel(
         name = "board-state",
         overwrites = \
         {
@@ -186,9 +179,15 @@ class Game (AsyncObject):
       .update({ "sizes.sizes": sizes }) \
       .update({ "uuid": self.category.id })
 
-    self.activeComponents = Game.components_dict.copy()
+    self.activeComponents = {}
 
-    self.Prepare()
+    default_components = self.properties["defaults"]
+    for (key, comp) in default_components:
+    #
+      self.activeComponents[key] = await self.botHandle.componentfactory.Create(key, comp, self)
+    #
+
+    self.Preview()
   #
 
 
@@ -587,6 +586,22 @@ class Game (AsyncObject):
       return
     #
 
+    if key.startswith("size"):
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{WARN} You should use `{pref} resize` instead." \
+            .format(WARN = EMOTES["WARNING"], pref = self.botHandle.globalConfigs["prefix"]),
+          "title": self.name,
+          "colour": COLOURS["WARNING"]
+        },
+        delete_after = None
+      )
+      return
+    #
+
     if action == 'get':
     #
       data = self.globalConfigs.get(key)
@@ -749,8 +764,6 @@ class Game (AsyncObject):
       return
     #
 
-    self.Prepare()
-
     if len(self.playerIDs) in self.properties["sizes.sizes"]:
     #
       self.Start()
@@ -782,6 +795,80 @@ class Game (AsyncObject):
         },
         delete_after = None
       )
+    #
+  #
+
+
+  async def Resize (self, context, sizes : str):
+  #
+    player = context.author
+
+    if self.isRunning:
+    #
+      await self.GameRunning(player, context.channel)
+      return
+    #
+
+    if player.id != self.owner.id and player.id not in self.botHandle.globalConfigs["moderators"]:
+    #
+      await self.NoPermission(player, context.channel)
+      return
+    #
+
+    if re.match(r'([0-9]+)(,[0-9]+)*', sizes) is None:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{ERR} Invalid size list '{sizes}'!" \
+            .format(ERR = EMOTES["ERR"], sizes = sizes),
+          "title": "Game Creator",
+          "colour": COLOURS["ERR"],
+        },
+        delete_after = None
+      )
+      return
+    #
+
+    sizes_list = list(map(lambda s: int(s), sizes.split(',')))
+
+    for size in sizes_list:
+    #
+      if size not in self.properties["sizes.legal"]:
+      #
+        await self.botHandle.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERR} This game can't be played with the size '{s}'." \
+              .format(ERR = EMOTES["ERR"], s = size),
+            "title": self.name,
+            "colour": COLOURS["ERR"]
+          },
+          delete_after = None
+        )
+        return
+      #
+    #
+
+    self.properties["sizes.sizes"] = sizes_list
+
+    await self.botHandle.messager.SendEmbed(
+      context.channel,
+      {
+        "author": "SDMBot",
+        "description": "{SUCCESS} Changed the game's sizes to `{sizes}`." \
+          .format(SUCCESS = EMOTES["SUCCESS"], sizes = sizes_list),
+        "title": self.name,
+        "colour": COLOURS["SUCCESS"]
+      },
+      delete_after = None
+    )
+
+    if len(self.playerIDs) in self.properties["sizes.sizes"]:
+    #
+      self.Start()
     #
   #
 
@@ -883,6 +970,11 @@ class Game (AsyncObject):
       if args is None or len(args) not in [2, 3] or type(args[1]) is not str: await self.botHandle.Usage(context.channel, Game.commands["edit"])
       else: await self.Edit(context, args[0], args[1].toLower(), self.Specialize(args[2]) if len(args) > 2 else None)
     #
+    elif  command in ["resize, size"]:
+    #
+      if args is None or len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["resize"])
+      else: await self.Resize(context, args[0])
+    #
     elif  command in ["rename"]:
     #
       if args is None: await self.botHandle.Usage(context.channel, Game.commands["rename"])
@@ -901,15 +993,35 @@ class Game (AsyncObject):
   #
 
 
-  async def Prepare (self):
+  async def Preview (self):
   #
-    pass
+    imageHandler = self.properties["board-manager"]
+    await self.activeComponents[imageHandler].Update()
   #
 
 
   async def Start (self):
   #
-    await self.activeComponents["premise"].Setup()
+    playerPerms = \
+    {
+      self.category.guild.default_role: Game.read_only
+    }
+
+    for pid in self.playerIDs:
+    #
+      player = await self.category.guild.fetch_member(pid)
+      playerPerms.update({ player: Game.read_write })
+    #
+
+    mainChannel = await self.category.create_text_channel(
+      name = 'game-chat',
+      overwrites = playerPerms
+    )
+
+    self.channels['main'] = mainChannel
+
+    entryPoint = self.properties["entry-point"]
+    await self.activeComponents[entryPoint].Setup()
   #
 
 
