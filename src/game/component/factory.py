@@ -54,6 +54,9 @@ class ComponentFactory (object):
     clazz     = getattr(module, "{archetype}Component{s}{c}" \
       .format(archetype = archetype, s = slot.capitalize(), c = component.capitalize()))
     
-    instance  = await clazz(parent = game)
+    instance      = await clazz(game)
+    instance.slot = slot
+    instance.name = component
+    
     return instance
   #

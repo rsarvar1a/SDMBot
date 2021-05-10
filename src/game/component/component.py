@@ -7,9 +7,11 @@ from src.utils.asyncobject import AsyncObject
 class Component (AsyncObject):
 
 
-  async def __init__ (self, parent : Game):
+  async def __init__ (self, game : Game):
   #
-    self.game = parent
+    self.game = game
+    self.slot = None
+    self.name = None
   #
 
 

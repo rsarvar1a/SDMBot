@@ -1,6 +1,7 @@
 
 import re
 import discord
+from discord.utils import CachedSlotProperty
 from dotty_dict import dotty
 from threading  import RLock
 
@@ -156,7 +157,7 @@ class Game (AsyncObject):
     self.owner     = context.author
 
     self.mutex     = RLock()
-    self.didGo = False
+    self.didGo     = False
 
     self.name      = gameName
     self.category  = await context.channel.guild.create_category(name = self.name)
@@ -202,6 +203,7 @@ class Game (AsyncObject):
       })
 
     self.activeComponents = {}
+    self.componentPointer = self.properties["entry-point"]
 
     default_components = self.properties["defaults"]
     for (key, comp) in default_components.items():
@@ -1045,7 +1047,27 @@ class Game (AsyncObject):
 
   async def HandleEvent (self, data : any, form : str):
   #
-    pass
+    self.mutex.acquire(blocking = True)
+
+    if self.isRunning and data is not None:
+    #
+      await self.activeComponents[self.componentPointer].Handle(data, form)
+    #
+
+    self.mutex.release()
+  #
+
+
+  async def UpdateTo (self, slot : str, name = None):
+  #
+    if name is not None and self.activeComponents[slot].name != name:
+    #
+      self.activeComponents[slot].Teardown()
+      self.activeComponents[slot] = await self.botHandle.componentfactory.Create(slot, name, self)
+    #
+
+    self.componentPointer = slot
+    await self.activeComponents[slot].Setup()
   #
 
 
