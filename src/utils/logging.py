@@ -1,4 +1,5 @@
 
+from collections import defaultdict
 import os
 from datetime import datetime
 
@@ -11,18 +12,20 @@ from defs import *
 class Logger (object):
 
 
-  prios = \
+  prios = defaultdict()
+  prios.setdefault("info")
+  prios.update(
   {
     COLOURS["ERR"]: "error",
     COLOURS["WARNING"]: "warning",
     COLOURS["INFO"]: "info",
-    COLOURS["SUCCESS"]: "info",
-  }
+    COLOURS["SUCCESS"]: "info"
+  })
 
 
-  def __init__ (self, config : dict):
+  def __init__ (self, bot):
   #
-    self.prio = self.Numerical(config["logging_level"])
+    self.botHandle = bot
   #
 
 
@@ -77,7 +80,7 @@ class Logger (object):
 
   def Log (self, content : str, location : str, priority : str):
   #
-    if (self.Numerical(priority) >= self.prio):
+    if (self.Numerical(priority) >= self.Numerical(self.botHandle.globalConfigs["logging_level"])):
       ret = "\n{tagcolour} {tag}{contentcolour} {date} in {file}: \n{reset}{content}".format(
         date = datetime.now().strftime('%I:%M:%S %p').ljust(11),
         tagcolour = self.Colour(priority), 
@@ -93,5 +96,5 @@ class Logger (object):
 
   def Reflect (self, content : str, colour : int):
   #
-    self.Log(content, "reflection", Logger.prios[colour])
+    self.Log(content, "reflection", Logger.prios.get(colour) or "info")
   #

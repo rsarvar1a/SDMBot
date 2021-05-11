@@ -144,6 +144,11 @@ class Game (AsyncObject):
   ) 
 
 
+  private = discord.PermissionOverwrite(
+    read_messages = False
+  )
+
+
   base_properties = \
   {
     "private": False
@@ -196,11 +201,8 @@ class Game (AsyncObject):
 
     self.properties = dotty(Game.base_properties)
     self.properties.update(properties)
-    self.properties.update(
-      { 
-        "sizes.sizes": sizes,
-        "uuid": self.category.id
-      })
+    self.properties["sizes.sizes"] = sizes
+    self.properties["uuid"] = self.category.id
 
     self.activeComponents = {}
     self.componentPointer = self.properties["entry-point"]
@@ -211,7 +213,8 @@ class Game (AsyncObject):
       self.activeComponents[key] = await self.botHandle.componentfactory.Create(key, comp, self)
     #
 
-    self.Preview()
+    await self.activeComponents[self.properties["board-manager"]].Setup()
+    await self.Preview()
   #
 
 
@@ -335,12 +338,12 @@ class Game (AsyncObject):
         delete_after = None
       )
 
-      self.playerIDs.append[player.id]
+      self.playerIDs.append(player.id)
       self.botHandle.activePlayers.update({ player.id: self })
       
       if len(self.playerIDs) in self.properties["sizes.sizes"]:
       #
-        self.Start()
+        await self.Start()
       #
     #
   #
@@ -403,7 +406,7 @@ class Game (AsyncObject):
 
     if len(self.playerIDs) in self.properties["sizes.sizes"]:
     #
-      self.Start()
+      await self.Start()
     #
   #
 
@@ -447,6 +450,7 @@ class Game (AsyncObject):
         },
         delete_after = None
       )
+      return
     #
     elif soughtPlayer.id in self.playerIDs:
     #
@@ -461,6 +465,7 @@ class Game (AsyncObject):
         },
         delete_after = None
       )
+      return
     #
     elif soughtPlayer.id in self.botHandle.activePlayers.keys():
     #
@@ -475,6 +480,7 @@ class Game (AsyncObject):
         },
         delete_after = None
       )
+      return
     #
     elif len(self.playerIDs) > self.properties["sizes.absolute-max"]:
     #
@@ -489,6 +495,7 @@ class Game (AsyncObject):
         },
         delete_after = None
       )
+      return
     #
     else:
     #
@@ -504,12 +511,12 @@ class Game (AsyncObject):
         delete_after = None
       )
 
-      self.botHandle.activePlayers.update({ soughtPlayer.id, self })
+      self.botHandle.activePlayers[soughtPlayer.id] = self
       self.playerIDs.append(soughtPlayer.id)
 
       if len(self.playerIDs) in self.properties["sizes.sizes"]:
       #
-        self.Start()
+        await self.Start()
       #
     #
   #
@@ -588,7 +595,7 @@ class Game (AsyncObject):
 
       if len(self.playerIDs) in self.properties["sizes.sizes"]:
       #
-        self.Start()
+        await self.Start()
       #
     #
   #
@@ -790,7 +797,7 @@ class Game (AsyncObject):
 
     if len(self.playerIDs) in self.properties["sizes.sizes"]:
     #
-      self.Start()
+      await self.Start()
     #
   #
 
@@ -892,7 +899,7 @@ class Game (AsyncObject):
 
     if len(self.playerIDs) in self.properties["sizes.sizes"]:
     #
-      self.Start()
+      await self.Start()
     #
   #
 
@@ -1006,7 +1013,7 @@ class Game (AsyncObject):
       if args is None or len(args) not in [2, 3] or type(args[1]) is not str: await self.botHandle.Usage(context.channel, Game.commands["edit"])
       else: await self.Edit(context, args[0], args[1].toLower(), self.Specialize(args[2]) if len(args) > 2 else None)
     #
-    elif  command in ["resize, size"]:
+    elif  command in ["resize", "size"]:
     #
       if args is None or len(args) != 1: await self.botHandle.Usage(context.channel, Game.commands["resize"])
       else: await self.Resize(context, args[0])

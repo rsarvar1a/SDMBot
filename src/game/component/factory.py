@@ -52,7 +52,7 @@ class ComponentFactory (object):
     module    = importlib.import_module(modName)
     archetype = variant["archetype"]
     clazz     = getattr(module, "{archetype}Component{s}{c}" \
-      .format(archetype = archetype, s = slot.capitalize(), c = component.capitalize()))
+      .format(archetype = archetype.capitalize(), s = slot.capitalize(), c = component.capitalize()))
     
     instance      = await clazz(game)
     instance.slot = slot

@@ -36,13 +36,13 @@ class MessageHandler (object):
     )
     
     f = None
-    if data.get("file") is not None:
-    #
-
-      f = discord.File(fp = data.get("file")["source"], filename = data.get("file")["name"])
+    if data.get("image") is not None:
+    # 
+      rel = os.path.basename(data.get("image")["name"])
+      f = discord.File(data.get("image")["source"], filename = rel)
       constructed.set_image(
         url = "attachment://{ref}" \
-          .format(ref = data.get("file")["name"])
+          .format(ref = rel)
       )
     #
 
@@ -56,7 +56,12 @@ class MessageHandler (object):
       for field in data.get("fields"):
         constructed.add_field(name = field["name"], value = field["value"])
 
-    self.botHandle.logger.Reflect("bot.response:\n" + json.dumps(data, indent = 2), data.get("colour"))
+    noimg = data.copy()
+    if noimg.get("image") is not None: 
+    #
+      noimg["image"].pop("source")
+    #
+    self.botHandle.logger.Reflect("bot.response:\n" + json.dumps(noimg, indent = 2), data.get("colour"))
 
     return await channel.send(embed = constructed, file = f, delete_after = delete_after)
   #

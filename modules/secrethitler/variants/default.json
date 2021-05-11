@@ -10,7 +10,6 @@
   {
     "premise":     "default",
     "conclusion":  "default",
-    "updater":     "default",
 
     "board":       "default",
     "tracker":     "default",
@@ -60,5 +59,12 @@
     "legal": [5, 6, 7, 8, 9, 10],
     "default": [7],
     "absolute-max": 10
+  },
+
+  "colours":
+  {
+    "liberal": 0,
+    "fascist": 1,
+    "hitler": 2
   }
 }

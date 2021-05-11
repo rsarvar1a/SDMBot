@@ -14,7 +14,7 @@ EMOTES = \
   "ERR": ":no_entry:",
   "WARNING": ":warning:",
   "SUCCESS": ":white_check_mark:",
-  "INFO": "information_source:"
+  "INFO": ":information_source:"
 }
 
 COLOURS = \
