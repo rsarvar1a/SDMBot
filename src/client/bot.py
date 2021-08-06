@@ -101,6 +101,26 @@ class TournamentBot (object):
   async def NewGame (self, context : discord.Message, args : list):
   #
     player = context.author
+    
+    if self.globalConfigs["creation"] in ["moderators", False]:
+    #
+      if player.id not in self.globalConfigs["moderators"]:
+      #
+        await self.botHandle.messager.SendEmbed(
+          context.channel,
+          {
+            "author": "SDMBot",
+            "description": "{ERROR} {mention}, you need to be authorized to create games." \
+              .format(ERROR = EMOTES["ERR"], mention = player.mention),
+            "title": "Game Creator",
+            "colour": COLOURS["WARNING"]
+          },
+          delete_after = None
+        ) 
+        return
+      #
+    #
+
     if self.activePlayers.get(player.id) is not None:
     #
       await self.messager.SendEmbed(

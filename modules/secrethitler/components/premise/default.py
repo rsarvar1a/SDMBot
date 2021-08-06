@@ -77,9 +77,22 @@ class SecrethitlerComponentPremiseDefault (Component):
     self.game.properties["policies-index"]     = { "liberal": 0, "fascist": 0 }
     self.game.properties["last-policy-played"] = None
 
-    # Throw in the deck because it's constant for the premise.
-
     self.game.properties["deck"] = { "liberal": 6, "fascist": 11 }
+
+    self.game.properties["govs"] = \
+    {
+      "next": None,
+      "current":
+      {
+        "president": 0,
+        "chancellor": None
+      },
+      "previous":
+      {
+        "president": None,
+        "chancellor": None
+      }
+    }
   #
 
 

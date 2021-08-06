@@ -120,6 +120,26 @@ class Game (AsyncObject):
         { "name": SEP, "value": "*You are a bot moderator.*" },
         { "name": SEP, "value": "*You are the owner of the game.*" }
       ]
+    },
+
+    "freeze":
+    {
+      "usage": "freeze/pause",
+      "description": "Freezes the game, preventing any player from taking actions.",
+      "requires":
+      [
+        { "name": SEP, "value": "*You are a bot moderator.*" }
+      ]
+    },
+
+    "unfreeze":
+    {
+      "usage": "unfreeze/resume",
+      "description": "Unfreezes the game, allowing players to take actions.",
+      "requires":
+      [
+        { "name": SEP, "value": "*You are a bot moderator.*" }
+      ]
     }
   }
 
@@ -198,6 +218,7 @@ class Game (AsyncObject):
     self.botHandle.activePlayers.update({ context.author.id: self })
 
     self.isRunning = False
+    self.isFrozen  = False
 
     self.properties = dotty(Game.base_properties)
     self.properties.update(properties)
@@ -904,6 +925,84 @@ class Game (AsyncObject):
   #
 
 
+  async def Unfreeze (self, context):
+  #
+    player = context.author
+
+    if not self.isRunning:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel, 
+        {
+          "author": "SDMBot",
+          "description": "{ERROR} {mention}, this game is not running!" \
+            .format(ERROR = EMOTES["ERR"], mention = player.mention),
+          "title": self.name,
+          "colour": COLOURS["WARNING"]
+        }, 
+        delete_after = None
+      )
+    #
+    elif player.id not in self.botHandle.globalConfigs["moderators"]:
+    #
+      await self.NoPermission(player, context.channel)
+    #
+    else:
+    #
+      self.isFrozen = False
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{SUCCESS} The game is unfrozen.",
+          "title": self.name,
+          "colour": COLOURS["SUCCESS"]
+        },
+        delete_after = None
+      )
+    #
+  #
+
+  
+  async def Freeze (self, context):
+  #
+    player = context.author
+
+    if not self.isRunning:
+    #
+      await self.botHandle.messager.SendEmbed(
+        context.channel, 
+        {
+          "author": "SDMBot",
+          "description": "{ERROR} {mention}, this game is not running!" \
+            .format(ERROR = EMOTES["ERR"], mention = player.mention),
+          "title": self.name,
+          "colour": COLOURS["WARNING"]
+        }, 
+        delete_after = None
+      )
+    #
+    elif player.id not in self.botHandle.globalConfigs["moderators"]:
+    #
+      await self.NoPermission(player, context.channel)
+    #
+    else:
+    #
+      self.isFrozen = True
+      await self.botHandle.messager.SendEmbed(
+        context.channel,
+        {
+          "author": "SDMBot",
+          "description": "{SUCCESS} The game is frozen.",
+          "title": self.name,
+          "colour": COLOURS["SUCCESS"]
+        },
+        delete_after = None
+      )
+    #
+  #
+
+
   async def Remake (self, context):
   #
     pass
@@ -1033,6 +1132,16 @@ class Game (AsyncObject):
       if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["go"])
       else: await self.Go(context)
     #
+    elif  command in ["freeze", "pause"]:
+    #
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["freeze"])
+      else: await self.Freeze(context)
+    #
+    elif  command in ["unfreeze", "resume"]:
+    #
+      if args not in [None, []]: await self.botHandle.Usage(context.channel, Game.commands["unfreeze"])
+      else: await self.Unfreeze(context)
+    #
 
     try:
     #
@@ -1056,7 +1165,7 @@ class Game (AsyncObject):
   #
     self.mutex.acquire(blocking = True)
 
-    if self.isRunning and data is not None:
+    if self.isRunning and data is not None and not self.isFrozen:
     #
       await self.activeComponents[self.componentPointer].Handle(data, form)
     #
